@@ -62,9 +62,19 @@ describe("DAO", function () {
       await dao.deposit(utils.parseEther("0.1"));
 
       // cheking
+      const voterOne = await dao.voters(owner.address);
+      expect(voterOne.amount).to.eq(utils.parseEther("0.1"));
+      expect(voterOne.lastVotingTime).to.eq(0);
+      expect(voterOne.exists).to.eq(true);
+
+      // new deposit
+      await dao.deposit(utils.parseEther("0.1"));
+
+      // cheking
       const voter = await dao.voters(owner.address);
-      expect(voter.amount).to.eq(utils.parseEther("0.1"));
+      expect(voter.amount).to.eq(utils.parseEther("0.2"));
       expect(voter.lastVotingTime).to.eq(0);
+      expect(voter.exists).to.eq(true);
     });
   });
 });

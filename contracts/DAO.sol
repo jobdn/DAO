@@ -17,6 +17,7 @@ contract DAO is IDAO {
     struct Voter {
         uint256 amount;
         uint256 lastVotingTime;
+        bool exists;
     }
 
     constructor(
@@ -37,6 +38,14 @@ contract DAO is IDAO {
 
     function deposit(uint256 _amount) external {
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-        voters[msg.sender] = Voter({amount: _amount, lastVotingTime: 0});
+        if (!voters[msg.sender].exists) {
+            voters[msg.sender] = Voter({
+                amount: _amount,
+                lastVotingTime: 0,
+                exists: true
+            });
+        } else {
+            voters[msg.sender].amount += _amount;
+        }
     }
 }
