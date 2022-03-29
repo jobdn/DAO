@@ -10,6 +10,29 @@ const _abi = [
   {
     inputs: [
       {
+        internalType: "bytes",
+        name: "_callData",
+        type: "bytes",
+      },
+      {
+        internalType: "address",
+        name: "_recipient",
+        type: "address",
+      },
+      {
+        internalType: "string",
+        name: "_descrition",
+        type: "string",
+      },
+    ],
+    name: "addProposal",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "_amount",
         type: "uint256",

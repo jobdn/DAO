@@ -24,26 +24,32 @@ import type {
 
 export interface DAOInterface extends utils.Interface {
   functions: {
-    "_chainperson()": FunctionFragment;
+    "_chairperson()": FunctionFragment;
     "_duration()": FunctionFragment;
     "_minimumQuorum()": FunctionFragment;
+    "_proposalCounter()": FunctionFragment;
     "_token()": FunctionFragment;
+    "addProposal(bytes,address,string)": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
+    "proposals(uint256)": FunctionFragment;
     "voters(address)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "_chainperson"
+      | "_chairperson"
       | "_duration"
       | "_minimumQuorum"
+      | "_proposalCounter"
       | "_token"
+      | "addProposal"
       | "deposit"
+      | "proposals"
       | "voters"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "_chainperson",
+    functionFragment: "_chairperson",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "_duration", values?: undefined): string;
@@ -51,15 +57,27 @@ export interface DAOInterface extends utils.Interface {
     functionFragment: "_minimumQuorum",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "_proposalCounter",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "_token", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "addProposal",
+    values: [BytesLike, string, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "deposit",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proposals",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "voters", values: [string]): string;
 
   decodeFunctionResult(
-    functionFragment: "_chainperson",
+    functionFragment: "_chairperson",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "_duration", data: BytesLike): Result;
@@ -67,8 +85,17 @@ export interface DAOInterface extends utils.Interface {
     functionFragment: "_minimumQuorum",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "_proposalCounter",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "_token", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "addProposal",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "proposals", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "voters", data: BytesLike): Result;
 
   events: {};
@@ -101,18 +128,42 @@ export interface DAO extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    _chainperson(overrides?: CallOverrides): Promise<[string]>;
+    _chairperson(overrides?: CallOverrides): Promise<[string]>;
 
     _duration(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     _minimumQuorum(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    _proposalCounter(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     _token(overrides?: CallOverrides): Promise<[string]>;
+
+    addProposal(
+      _callData: BytesLike,
+      _recipient: string,
+      _descrition: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     deposit(
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    proposals(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber, BigNumber, string, string, boolean, string] & {
+        id: BigNumber;
+        voteCount: BigNumber;
+        startTime: BigNumber;
+        description: string;
+        recipient: string;
+        started: boolean;
+        callData: string;
+      }
+    >;
 
     voters(
       arg0: string,
@@ -126,18 +177,42 @@ export interface DAO extends BaseContract {
     >;
   };
 
-  _chainperson(overrides?: CallOverrides): Promise<string>;
+  _chairperson(overrides?: CallOverrides): Promise<string>;
 
   _duration(overrides?: CallOverrides): Promise<BigNumber>;
 
   _minimumQuorum(overrides?: CallOverrides): Promise<BigNumber>;
 
+  _proposalCounter(overrides?: CallOverrides): Promise<BigNumber>;
+
   _token(overrides?: CallOverrides): Promise<string>;
+
+  addProposal(
+    _callData: BytesLike,
+    _recipient: string,
+    _descrition: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   deposit(
     _amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  proposals(
+    arg0: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber, BigNumber, string, string, boolean, string] & {
+      id: BigNumber;
+      voteCount: BigNumber;
+      startTime: BigNumber;
+      description: string;
+      recipient: string;
+      started: boolean;
+      callData: string;
+    }
+  >;
 
   voters(
     arg0: string,
@@ -151,15 +226,39 @@ export interface DAO extends BaseContract {
   >;
 
   callStatic: {
-    _chainperson(overrides?: CallOverrides): Promise<string>;
+    _chairperson(overrides?: CallOverrides): Promise<string>;
 
     _duration(overrides?: CallOverrides): Promise<BigNumber>;
 
     _minimumQuorum(overrides?: CallOverrides): Promise<BigNumber>;
 
+    _proposalCounter(overrides?: CallOverrides): Promise<BigNumber>;
+
     _token(overrides?: CallOverrides): Promise<string>;
 
+    addProposal(
+      _callData: BytesLike,
+      _recipient: string,
+      _descrition: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     deposit(_amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
+    proposals(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber, BigNumber, string, string, boolean, string] & {
+        id: BigNumber;
+        voteCount: BigNumber;
+        startTime: BigNumber;
+        description: string;
+        recipient: string;
+        started: boolean;
+        callData: string;
+      }
+    >;
 
     voters(
       arg0: string,
@@ -176,34 +275,62 @@ export interface DAO extends BaseContract {
   filters: {};
 
   estimateGas: {
-    _chainperson(overrides?: CallOverrides): Promise<BigNumber>;
+    _chairperson(overrides?: CallOverrides): Promise<BigNumber>;
 
     _duration(overrides?: CallOverrides): Promise<BigNumber>;
 
     _minimumQuorum(overrides?: CallOverrides): Promise<BigNumber>;
 
+    _proposalCounter(overrides?: CallOverrides): Promise<BigNumber>;
+
     _token(overrides?: CallOverrides): Promise<BigNumber>;
+
+    addProposal(
+      _callData: BytesLike,
+      _recipient: string,
+      _descrition: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     deposit(
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    proposals(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     voters(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    _chainperson(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    _chairperson(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     _duration(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     _minimumQuorum(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    _proposalCounter(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     _token(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    addProposal(
+      _callData: BytesLike,
+      _recipient: string,
+      _descrition: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     deposit(
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    proposals(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     voters(

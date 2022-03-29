@@ -20,42 +20,51 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
-} from "../common";
+} from "../../../common";
 
-export interface IDAOInterface extends utils.Interface {
+export interface RecipientInterface extends utils.Interface {
   functions: {
-    "addProposal(bytes,address,string)": FunctionFragment;
-    "deposit(uint256)": FunctionFragment;
+    "changeData(uint256,string)": FunctionFragment;
+    "receivedMessage()": FunctionFragment;
+    "receivedValue()": FunctionFragment;
   };
 
   getFunction(
-    nameOrSignatureOrTopic: "addProposal" | "deposit"
+    nameOrSignatureOrTopic: "changeData" | "receivedMessage" | "receivedValue"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "addProposal",
-    values: [BytesLike, string, string]
+    functionFragment: "changeData",
+    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "deposit",
-    values: [BigNumberish]
+    functionFragment: "receivedMessage",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "receivedValue",
+    values?: undefined
   ): string;
 
+  decodeFunctionResult(functionFragment: "changeData", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "addProposal",
+    functionFragment: "receivedMessage",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "receivedValue",
+    data: BytesLike
+  ): Result;
 
   events: {};
 }
 
-export interface IDAO extends BaseContract {
+export interface Recipient extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: IDAOInterface;
+  interface: RecipientInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -77,69 +86,62 @@ export interface IDAO extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    addProposal(
-      _callData: BytesLike,
-      _recipient: string,
-      _descrition: string,
+    changeData(
+      _value: BigNumberish,
+      _message: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    deposit(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
+    receivedMessage(overrides?: CallOverrides): Promise<[string]>;
+
+    receivedValue(overrides?: CallOverrides): Promise<[BigNumber]>;
   };
 
-  addProposal(
-    _callData: BytesLike,
-    _recipient: string,
-    _descrition: string,
+  changeData(
+    _value: BigNumberish,
+    _message: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  deposit(
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
+  receivedMessage(overrides?: CallOverrides): Promise<string>;
+
+  receivedValue(overrides?: CallOverrides): Promise<BigNumber>;
 
   callStatic: {
-    addProposal(
-      _callData: BytesLike,
-      _recipient: string,
-      _descrition: string,
+    changeData(
+      _value: BigNumberish,
+      _message: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    deposit(_amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+    receivedMessage(overrides?: CallOverrides): Promise<string>;
+
+    receivedValue(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   filters: {};
 
   estimateGas: {
-    addProposal(
-      _callData: BytesLike,
-      _recipient: string,
-      _descrition: string,
+    changeData(
+      _value: BigNumberish,
+      _message: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    deposit(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
+    receivedMessage(overrides?: CallOverrides): Promise<BigNumber>;
+
+    receivedValue(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    addProposal(
-      _callData: BytesLike,
-      _recipient: string,
-      _descrition: string,
+    changeData(
+      _value: BigNumberish,
+      _message: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    deposit(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
+    receivedMessage(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    receivedValue(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
 }

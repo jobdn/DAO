@@ -24,3 +24,5 @@ export type { DAO } from "./contracts/DAO";
 export { DAO__factory } from "./factories/contracts/DAO__factory";
 export type { IDAO } from "./contracts/IDAO";
 export { IDAO__factory } from "./factories/contracts/IDAO__factory";
+export type { Recipient } from "./contracts/test/Receiver.sol/Recipient";
+export { Recipient__factory } from "./factories/contracts/test/Receiver.sol/Recipient__factory";
