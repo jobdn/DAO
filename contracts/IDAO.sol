@@ -4,14 +4,9 @@ pragma solidity ^0.8.11;
 interface IDAO {
     /** @notice Deposit token to the DAO contract
      *  @dev If user made deposit yet its tokens will be added to previos deposit
-     *  @param  _amount Amount of deposit
+     *  @param  _amount Amount of deposit. 'amount' strictly greater than zero
      */
     function deposit(uint256 _amount) external;
-
-    /// @notice Vote on proposal `_proposalID` with `_supportsProposal`
-    /// @param _proposalId Id of proposal
-    /// @param _supportsProposal Support of the proposal
-    // function vote(uint256 _proposalId, bool _supportsProposal) external;
 
     /** @notice Explain to an end user what this does
      *  @dev Explain to a developer any extra details
@@ -24,4 +19,9 @@ interface IDAO {
         address _recipient,
         string memory _descrition
     ) external;
+
+    /// @notice Vote on proposal `_proposalID` with `_supportsProposal`
+    /// @param _proposalId Id of proposal
+    /// @param _supportsProposal Support of the proposal
+    function vote(uint256 _proposalId, bool _supportsProposal) external;
 }

@@ -71,6 +71,7 @@ describe("DAO", function () {
         // deposit
         await dao.deposit(i);
         depositSum += i;
+        expect(await token.balanceOf(dao.address)).to.eq(depositSum);
 
         // cheking
         const voter = await dao.voters(owner.address);
@@ -90,20 +91,21 @@ describe("DAO", function () {
     });
   });
 
+  interface ProposalItem {
+    num: number;
+    description: string;
+  }
+  const proposals: ProposalItem[] = [
+    { num: 1, description: "Proposal #1" },
+    { num: 2, description: "Proposal #2" },
+    { num: 3, description: "Proposal #3" },
+  ];
+
   describe("Add proposal", () => {
     it("should be possible to add proposal", async () => {
       const RECIPIEND_ABI_PART =
         "function changeData(uint256 _value, string memory _message) external";
       const iface = new utils.Interface([RECIPIEND_ABI_PART]);
-      interface ProposalItem {
-        num: number;
-        description: string;
-      }
-      const proposals: ProposalItem[] = [
-        { num: 1, description: "Proposal #1" },
-        { num: 2, description: "Proposal #2" },
-        { num: 3, description: "Proposal #3" },
-      ];
 
       let callData: BytesLike;
       for (const prop of proposals) {

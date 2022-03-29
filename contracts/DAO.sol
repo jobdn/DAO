@@ -89,4 +89,9 @@ contract DAO is IDAO {
             description: bytes32(bytes(_descrition))
         });
     }
+
+    function vote(uint256 _proposalId, bool _supportsProposal)
+        public
+        override
+    {}
 }
