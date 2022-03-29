@@ -26,10 +26,11 @@ export interface IDAOInterface extends utils.Interface {
   functions: {
     "addProposal(bytes,address,string)": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
+    "vote(uint256,bool)": FunctionFragment;
   };
 
   getFunction(
-    nameOrSignatureOrTopic: "addProposal" | "deposit"
+    nameOrSignatureOrTopic: "addProposal" | "deposit" | "vote"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -40,12 +41,17 @@ export interface IDAOInterface extends utils.Interface {
     functionFragment: "deposit",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "vote",
+    values: [BigNumberish, boolean]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "addProposal",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "vote", data: BytesLike): Result;
 
   events: {};
 }
@@ -88,6 +94,12 @@ export interface IDAO extends BaseContract {
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    vote(
+      _id: BigNumberish,
+      _supportsProposal: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
   };
 
   addProposal(
@@ -102,6 +114,12 @@ export interface IDAO extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  vote(
+    _id: BigNumberish,
+    _supportsProposal: boolean,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     addProposal(
       _callData: BytesLike,
@@ -111,6 +129,12 @@ export interface IDAO extends BaseContract {
     ): Promise<void>;
 
     deposit(_amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
+    vote(
+      _id: BigNumberish,
+      _supportsProposal: boolean,
+      overrides?: CallOverrides
+    ): Promise<void>;
   };
 
   filters: {};
@@ -127,6 +151,12 @@ export interface IDAO extends BaseContract {
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    vote(
+      _id: BigNumberish,
+      _supportsProposal: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -139,6 +169,12 @@ export interface IDAO extends BaseContract {
 
     deposit(
       _amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    vote(
+      _id: BigNumberish,
+      _supportsProposal: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

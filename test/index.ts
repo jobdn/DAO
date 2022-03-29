@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BytesLike, constants, utils } from "ethers";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import {
   DAO,
   DAO__factory,
@@ -14,14 +14,16 @@ import { ERC20__factory } from "../typechain-types/factories/contracts/token";
 describe("DAO", function () {
   let owner: SignerWithAddress;
   let acc1: SignerWithAddress;
+  let acc2: SignerWithAddress;
   let dao: DAO;
   let token: ERC20;
   let recipient: Recipient;
   const MIN_QUORUM = 100;
   const DURATION = 600; // 10 minutes
+  const PROPOSAL_STARTED = 1;
 
   beforeEach(async () => {
-    [owner, acc1] = await ethers.getSigners();
+    [owner, acc1, acc2] = await ethers.getSigners();
     token = await new ERC20__factory(owner).deploy("TOKEN", "TKN", 2);
     dao = await new DAO__factory(owner).deploy(
       owner.address,
@@ -96,45 +98,105 @@ describe("DAO", function () {
     description: string;
   }
   const proposals: ProposalItem[] = [
+    { num: 0, description: "Proposal #0" },
     { num: 1, description: "Proposal #1" },
     { num: 2, description: "Proposal #2" },
     { num: 3, description: "Proposal #3" },
   ];
 
+  // HELPERS ===================================================================
+  const addProposal = async (
+    propDesc: string,
+    propNum: number,
+    signer: SignerWithAddress = owner
+  ) => {
+    const RECIPIEND_ABI_PART =
+      "function changeData(uint256 _value, string memory _message) external";
+    const iface = new utils.Interface([RECIPIEND_ABI_PART]);
+
+    const callData: BytesLike = iface.encodeFunctionData("changeData", [
+      propNum,
+      propDesc,
+    ]);
+    // proposal adding
+    await dao
+      .connect(signer)
+      .addProposal(callData, recipient.address, propDesc);
+
+    expect((await dao.proposals(propNum)).id).to.eq(propNum);
+    expect((await dao.proposals(propNum)).callData).to.eq(callData);
+    expect((await dao.proposals(propNum)).recipient).to.eq(recipient.address);
+    expect((await dao.proposals(propNum)).description).to.eq(
+      utils.formatBytes32String(propDesc)
+    );
+    expect((await dao.proposals(propNum)).voteCount).to.eq(0);
+    expect((await dao.proposals(propNum)).quorumCount).to.eq(0);
+    expect((await dao.proposals(propNum)).status).to.eq(PROPOSAL_STARTED);
+  };
+
+  const makeDeposit = async (
+    depositAmount: number,
+    signer: SignerWithAddress = owner
+  ) => {
+    await token.mint(signer.address, depositAmount);
+    await token.connect(signer).approve(dao.address, depositAmount);
+    await dao.connect(signer).deposit(depositAmount);
+  };
+
+  const depositAndVote = async (
+    depositAmount: number,
+    id: number,
+    supportedAgainst: boolean,
+    signer: SignerWithAddress = owner
+  ) => {
+    await makeDeposit(depositAmount, signer);
+    await dao.connect(signer).vote(id, supportedAgainst);
+  };
+  // HELPERS ===================================================================
+
   describe("Add proposal", () => {
     it("should be possible to add proposal", async () => {
-      const RECIPIEND_ABI_PART =
-        "function changeData(uint256 _value, string memory _message) external";
-      const iface = new utils.Interface([RECIPIEND_ABI_PART]);
-
-      let callData: BytesLike;
       for (const prop of proposals) {
-        // calldata creating
-        callData = iface.encodeFunctionData("changeData", [
-          prop.num,
-          prop.description,
-        ]);
-        // proposal adding
-        await dao.addProposal(callData, recipient.address, prop.description);
+        await addProposal(prop.description, prop.num);
       }
+    });
 
-      describe("Add propsal fail", () => {
-        it("should be fail not chairperson trying to add proposal", async () => {
-          callData = iface.encodeFunctionData("changeData", [
-            proposals[0].num,
-            proposals[0].description,
-          ]);
-          await expect(
-            dao
-              .connect(acc1)
-              .addProposal(
-                callData,
-                recipient.address,
-                proposals[0].description
-              )
-          ).to.be.revertedWith("DAO: not chairperson");
-        });
-      });
+    it("should be fail not chairperson trying to add proposal", async () => {
+      await expect(
+        addProposal(proposals[0].description, proposals[0].num, acc1)
+      ).to.be.revertedWith("DAO: not chairperson");
+    });
+  });
+
+  describe("Vote", async () => {
+    it("should be possible to vote for proposal", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+
+      await depositAndVote(1000, 0, true);
+      await depositAndVote(200, 0, false, acc1);
+      await depositAndVote(100, 0, false, acc2);
+      await depositAndVote(200, 0, false, acc1);
+
+      const propsal = await dao.proposals(0);
+      expect(propsal.voteCount).to.eq(500);
+      expect(propsal.quorumCount).to.eq(1500);
+    });
+
+    it("should be fail if voter trying to vote for non existent proposal", async () => {
+      await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
+        "DAO: not existent proposal"
+      );
+    });
+
+    it("should be fail if voter trying to vote after finishing of proposal", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+
+      await network.provider.send("evm_increaseTime", [DURATION + 1]);
+      await network.provider.send("evm_mine");
+
+      await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
+        "DAO: period of voting is over"
+      );
     });
   });
 });

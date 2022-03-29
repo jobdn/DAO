@@ -19,19 +19,26 @@ contract DAO is IDAO {
     mapping(address => Voter) public voters;
     mapping(uint256 => Proposal) public proposals;
 
+    enum ProposalStatus {
+        FINISED,
+        STARTED
+    }
+
     struct Proposal {
         uint256 id;
-        uint256 voteCount;
-        uint256 startTime;
+        uint256 creationTime;
+        uint256 quorumCount;
+        int256 voteCount;
         bytes32 description;
         address recipient;
-        bool started;
+        ProposalStatus status;
         bytes callData;
     }
 
     struct Voter {
         uint256 amount;
         uint256 lastVotingTime;
+        uint256 lastDeposit;
         bool exists;
     }
 
@@ -65,10 +72,12 @@ contract DAO is IDAO {
             voters[msg.sender] = Voter({
                 amount: _amount,
                 lastVotingTime: 0,
+                lastDeposit: _amount,
                 exists: true
             });
         } else {
             voters[msg.sender].amount += _amount;
+            voters[msg.sender].lastDeposit = _amount;
         }
     }
 
@@ -78,20 +87,34 @@ contract DAO is IDAO {
         string memory _descrition
     ) public override {
         require(msg.sender == _chairperson, "DAO: not chairperson");
-        _proposalCounter++;
         proposals[_proposalCounter] = Proposal({
             id: _proposalCounter,
             voteCount: 0,
-            startTime: block.timestamp,
+            quorumCount: 0,
+            creationTime: block.timestamp,
             callData: _callData,
             recipient: _recipient,
-            started: true,
+            status: ProposalStatus.STARTED,
             description: bytes32(bytes(_descrition))
         });
+
+        _proposalCounter++;
     }
 
-    function vote(uint256 _proposalId, bool _supportsProposal)
-        public
-        override
-    {}
+    function vote(uint256 _id, bool _supportsAgainst) public override {
+        require(
+            proposals[_id].status == ProposalStatus.STARTED,
+            "DAO: not existent proposal"
+        );
+        require(
+            block.timestamp < proposals[_id].creationTime + _duration,
+            "DAO: period of voting is over"
+        );
+        if (_supportsAgainst) {
+            proposals[_id].voteCount += int256(voters[msg.sender].lastDeposit);
+        } else {
+            proposals[_id].voteCount -= int256(voters[msg.sender].lastDeposit);
+        }
+        proposals[_id].quorumCount += voters[msg.sender].lastDeposit;
+    }
 }

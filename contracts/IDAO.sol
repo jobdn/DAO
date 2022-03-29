@@ -21,7 +21,7 @@ interface IDAO {
     ) external;
 
     /// @notice Vote on proposal `_proposalID` with `_supportsProposal`
-    /// @param _proposalId Id of proposal
+    /// @param _id Id of proposal
     /// @param _supportsProposal Support of the proposal
-    function vote(uint256 _proposalId, bool _supportsProposal) external;
+    function vote(uint256 _id, bool _supportsProposal) external;
 }
