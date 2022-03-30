@@ -18,9 +18,10 @@ contract DAO is IDAO {
     uint256 public _proposalCounter;
     mapping(address => Voter) public voters;
     mapping(uint256 => Proposal) public proposals;
+    error NotSuccessVoting();
 
     enum ProposalStatus {
-        FINISED,
+        FINISHED,
         STARTED
     }
 
@@ -101,11 +102,19 @@ contract DAO is IDAO {
         _proposalCounter++;
     }
 
-    function vote(uint256 _id, bool _supportsAgainst) public override {
+    modifier existentProposal(uint256 _id) {
         require(
             proposals[_id].status == ProposalStatus.STARTED,
             "DAO: not existent proposal"
         );
+        _;
+    }
+
+    function vote(uint256 _id, bool _supportsAgainst)
+        public
+        override
+        existentProposal(_id)
+    {
         require(
             block.timestamp < proposals[_id].creationTime + _duration,
             "DAO: period of voting is over"
@@ -116,5 +125,28 @@ contract DAO is IDAO {
             proposals[_id].voteCount -= int256(voters[msg.sender].lastDeposit);
         }
         proposals[_id].quorumCount += voters[msg.sender].lastDeposit;
+        voters[msg.sender].lastVotingTime = block.timestamp;
+    }
+
+    function finishProposal(uint256 _id) public override existentProposal(_id) {
+        require(
+            block.timestamp >= proposals[_id].creationTime + _duration,
+            "DAO: period of voting isn't over"
+        );
+
+        if (
+            proposals[_id].quorumCount > _minimumQuorum &&
+            proposals[_id].voteCount > 0
+        ) {
+            (bool callStatus, ) = proposals[_id].recipient.call(
+                proposals[_id].callData
+            );
+            console.log("CALL STATUS: ", callStatus);
+            require(callStatus, "DAO: call fails");
+            // TODO: please change call data if callStatus is false
+            proposals[_id].status = ProposalStatus.FINISHED;
+        } else {
+            proposals[_id].status = ProposalStatus.FINISHED;
+        }
     }
 }

@@ -50,6 +50,19 @@ const _abi = [
         name: "_id",
         type: "uint256",
       },
+    ],
+    name: "finishProposal",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_id",
+        type: "uint256",
+      },
       {
         internalType: "bool",
         name: "_supportsProposal",

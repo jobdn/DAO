@@ -24,4 +24,9 @@ interface IDAO {
     /// @param _id Id of proposal
     /// @param _supportsProposal Support of the proposal
     function vote(uint256 _id, bool _supportsProposal) external;
+
+    /// @notice Any user can finish the proposal with id
+    /// @dev If proposal doesn't have amount of token is equal to 'minimunQuorum' proposal is considered failed
+    /// @param _id Id of proposal
+    function finishProposal(uint256 _id) external;
 }

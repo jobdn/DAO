@@ -31,6 +31,7 @@ export interface DAOInterface extends utils.Interface {
     "_token()": FunctionFragment;
     "addProposal(bytes,address,string)": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
+    "finishProposal(uint256)": FunctionFragment;
     "proposals(uint256)": FunctionFragment;
     "vote(uint256,bool)": FunctionFragment;
     "voters(address)": FunctionFragment;
@@ -45,6 +46,7 @@ export interface DAOInterface extends utils.Interface {
       | "_token"
       | "addProposal"
       | "deposit"
+      | "finishProposal"
       | "proposals"
       | "vote"
       | "voters"
@@ -70,6 +72,10 @@ export interface DAOInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "deposit",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "finishProposal",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -101,6 +107,10 @@ export interface DAOInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "finishProposal",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "proposals", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "vote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "voters", data: BytesLike): Result;
@@ -154,6 +164,11 @@ export interface DAO extends BaseContract {
 
     deposit(
       _amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    finishProposal(
+      _id: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -223,6 +238,11 @@ export interface DAO extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  finishProposal(
+    _id: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   proposals(
     arg0: BigNumberish,
     overrides?: CallOverrides
@@ -285,6 +305,8 @@ export interface DAO extends BaseContract {
     ): Promise<void>;
 
     deposit(_amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
+    finishProposal(_id: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     proposals(
       arg0: BigNumberish,
@@ -355,6 +377,11 @@ export interface DAO extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    finishProposal(
+      _id: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     proposals(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -389,6 +416,11 @@ export interface DAO extends BaseContract {
 
     deposit(
       _amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    finishProposal(
+      _id: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

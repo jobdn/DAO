@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BytesLike, constants, utils } from "ethers";
+import { arrayify } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import {
   DAO,
@@ -18,8 +19,9 @@ describe("DAO", function () {
   let dao: DAO;
   let token: ERC20;
   let recipient: Recipient;
-  const MIN_QUORUM = 100;
+  const MIN_QUORUM = 1000;
   const DURATION = 600; // 10 minutes
+  const PROPOSAL_FINISHED = 0;
   const PROPOSAL_STARTED = 1;
 
   beforeEach(async () => {
@@ -150,6 +152,7 @@ describe("DAO", function () {
     signer: SignerWithAddress = owner
   ) => {
     await makeDeposit(depositAmount, signer);
+
     await dao.connect(signer).vote(id, supportedAgainst);
   };
   // HELPERS ===================================================================
@@ -172,10 +175,10 @@ describe("DAO", function () {
     it("should be possible to vote for proposal", async () => {
       await addProposal(proposals[0].description, proposals[0].num);
 
-      await depositAndVote(1000, 0, true);
-      await depositAndVote(200, 0, false, acc1);
-      await depositAndVote(100, 0, false, acc2);
-      await depositAndVote(200, 0, false, acc1);
+      await depositAndVote(1000, proposals[0].num, true);
+      await depositAndVote(200, proposals[0].num, false, acc1);
+      await depositAndVote(100, proposals[0].num, false, acc2);
+      await depositAndVote(200, proposals[0].num, false, acc1);
 
       const propsal = await dao.proposals(0);
       expect(propsal.voteCount).to.eq(500);
@@ -191,11 +194,85 @@ describe("DAO", function () {
     it("should be fail if voter trying to vote after finishing of proposal", async () => {
       await addProposal(proposals[0].description, proposals[0].num);
 
-      await network.provider.send("evm_increaseTime", [DURATION + 1]);
+      await network.provider.send("evm_increaseTime", [DURATION]);
       await network.provider.send("evm_mine");
 
       await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
         "DAO: period of voting is over"
+      );
+    });
+  });
+
+  describe("Proposal finish", () => {
+    it("should be finish successful proposal", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+      await depositAndVote(1000, proposals[0].num, true);
+      await depositAndVote(200, proposals[0].num, false, acc1);
+      await depositAndVote(100, proposals[0].num, false, acc2);
+      await depositAndVote(200, proposals[0].num, false, acc1);
+
+      await network.provider.send("evm_increaseTime", [DURATION]);
+      await network.provider.send("evm_mine");
+
+      await dao.finishProposal(proposals[0].num);
+      const proposal = await dao.proposals(proposals[0].num);
+      expect(proposal.status).to.eq(PROPOSAL_FINISHED);
+      expect(await recipient.receivedValue()).to.eq(proposals[0].num);
+      expect(await recipient.receivedMessage()).to.eq(proposals[0].description);
+    });
+
+    it("should be finish not successful proposal", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+      await depositAndVote(100, proposals[0].num, true);
+      await depositAndVote(2000, proposals[0].num, false, acc1);
+
+      await network.provider.send("evm_increaseTime", [DURATION]);
+      await network.provider.send("evm_mine");
+
+      // finish
+      await dao.finishProposal(proposals[0].num);
+      const proposal = await dao.proposals(proposals[0].num);
+      // check
+      expect(proposal.status).to.eq(PROPOSAL_FINISHED);
+      expect(await recipient.receivedValue()).to.eq(0);
+      expect(await recipient.receivedMessage()).to.eq("");
+    });
+
+    it("should be fail if proposal period isn't over yet", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+      await expect(dao.finishProposal(proposals[0].num)).to.be.revertedWith(
+        "DAO: period of voting isn't over"
+      );
+    });
+
+    it("should be fail if callData is wrong", async () => {
+      const RECIPIEND_ABI_PART =
+        "function WRONG_changeData(uint256 _value, string memory _message) external";
+      const iface = new utils.Interface([RECIPIEND_ABI_PART]);
+
+      // create wrong calldata
+      const callData: BytesLike = iface.encodeFunctionData("WRONG_changeData", [
+        proposals[0].num,
+        proposals[0].description,
+      ]);
+      // proposal adding
+      await dao.addProposal(
+        callData,
+        recipient.address,
+        proposals[0].description
+      );
+
+      await depositAndVote(1000, proposals[0].num, true);
+      await depositAndVote(200, proposals[0].num, false, acc1);
+      await depositAndVote(100, proposals[0].num, false, acc2);
+      await depositAndVote(200, proposals[0].num, false, acc1);
+
+      await network.provider.send("evm_increaseTime", [DURATION]);
+      await network.provider.send("evm_mine");
+
+      // finish
+      await expect(dao.finishProposal(proposals[0].num)).to.be.revertedWith(
+        "DAO: call fails"
       );
     });
   });
