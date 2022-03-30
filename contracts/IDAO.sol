@@ -2,6 +2,19 @@
 pragma solidity ^0.8.11;
 
 interface IDAO {
+    event DepositMade(address indexed voter, uint256 amount);
+    event ProposalAdded(
+        address indexed recipient,
+        bytes indexed callData,
+        bytes32 indexed description
+    );
+    event VotedForProposal(
+        address indexed recipient,
+        uint256 indexed id,
+        bool supportsAgainst
+    );
+    event ProposalFinished(address indexed voter, uint256 indexed id);
+
     /// @notice Deposit token to the DAO contract.
     /// @dev If user made deposit yet its tokens will be added to previos deposit.
     ///      User can make more than one deposit.

@@ -13,7 +13,11 @@ import type {
   Signer,
   utils,
 } from "ethers";
-import type { FunctionFragment, Result } from "@ethersproject/abi";
+import type {
+  FunctionFragment,
+  Result,
+  EventFragment,
+} from "@ethersproject/abi";
 import type { Listener, Provider } from "@ethersproject/providers";
 import type {
   TypedEventFilter,
@@ -125,8 +129,66 @@ export interface DAOInterface extends utils.Interface {
     data: BytesLike
   ): Result;
 
-  events: {};
+  events: {
+    "DepositMade(address,uint256)": EventFragment;
+    "ProposalAdded(address,bytes,bytes32)": EventFragment;
+    "ProposalFinished(address,uint256)": EventFragment;
+    "VotedForProposal(address,uint256,bool)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "DepositMade"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ProposalAdded"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ProposalFinished"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "VotedForProposal"): EventFragment;
 }
+
+export interface DepositMadeEventObject {
+  voter: string;
+  amount: BigNumber;
+}
+export type DepositMadeEvent = TypedEvent<
+  [string, BigNumber],
+  DepositMadeEventObject
+>;
+
+export type DepositMadeEventFilter = TypedEventFilter<DepositMadeEvent>;
+
+export interface ProposalAddedEventObject {
+  recipient: string;
+  callData: string;
+  description: string;
+}
+export type ProposalAddedEvent = TypedEvent<
+  [string, string, string],
+  ProposalAddedEventObject
+>;
+
+export type ProposalAddedEventFilter = TypedEventFilter<ProposalAddedEvent>;
+
+export interface ProposalFinishedEventObject {
+  voter: string;
+  id: BigNumber;
+}
+export type ProposalFinishedEvent = TypedEvent<
+  [string, BigNumber],
+  ProposalFinishedEventObject
+>;
+
+export type ProposalFinishedEventFilter =
+  TypedEventFilter<ProposalFinishedEvent>;
+
+export interface VotedForProposalEventObject {
+  recipient: string;
+  id: BigNumber;
+  supportsAgainst: boolean;
+}
+export type VotedForProposalEvent = TypedEvent<
+  [string, BigNumber, boolean],
+  VotedForProposalEventObject
+>;
+
+export type VotedForProposalEventFilter =
+  TypedEventFilter<VotedForProposalEvent>;
 
 export interface DAO extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -375,7 +437,44 @@ export interface DAO extends BaseContract {
     withdrawTokens(overrides?: CallOverrides): Promise<void>;
   };
 
-  filters: {};
+  filters: {
+    "DepositMade(address,uint256)"(
+      voter?: string | null,
+      amount?: null
+    ): DepositMadeEventFilter;
+    DepositMade(voter?: string | null, amount?: null): DepositMadeEventFilter;
+
+    "ProposalAdded(address,bytes,bytes32)"(
+      recipient?: string | null,
+      callData?: BytesLike | null,
+      description?: BytesLike | null
+    ): ProposalAddedEventFilter;
+    ProposalAdded(
+      recipient?: string | null,
+      callData?: BytesLike | null,
+      description?: BytesLike | null
+    ): ProposalAddedEventFilter;
+
+    "ProposalFinished(address,uint256)"(
+      voter?: string | null,
+      id?: BigNumberish | null
+    ): ProposalFinishedEventFilter;
+    ProposalFinished(
+      voter?: string | null,
+      id?: BigNumberish | null
+    ): ProposalFinishedEventFilter;
+
+    "VotedForProposal(address,uint256,bool)"(
+      recipient?: string | null,
+      id?: BigNumberish | null,
+      supportsAgainst?: null
+    ): VotedForProposalEventFilter;
+    VotedForProposal(
+      recipient?: string | null,
+      id?: BigNumberish | null,
+      supportsAgainst?: null
+    ): VotedForProposalEventFilter;
+  };
 
   estimateGas: {
     _chairperson(overrides?: CallOverrides): Promise<BigNumber>;

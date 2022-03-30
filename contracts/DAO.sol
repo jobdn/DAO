@@ -81,6 +81,8 @@ contract DAO is IDAO, ReentrancyGuard {
             voters[msg.sender].amount += _amount;
             voters[msg.sender].lastDeposit = _amount;
         }
+
+        emit DepositMade(msg.sender, _amount);
     }
 
     function addProposal(
@@ -101,6 +103,12 @@ contract DAO is IDAO, ReentrancyGuard {
             status: ProposalStatus.STARTED,
             description: bytes32(bytes(_descrition))
         });
+
+        emit ProposalAdded(
+            _recipient,
+            _callData,
+            proposals[_proposalCounter].description
+        );
     }
 
     modifier existentProposal(uint256 _id) {
@@ -146,6 +154,8 @@ contract DAO is IDAO, ReentrancyGuard {
         }
         proposals[_id].quorumCount += voters[msg.sender].lastDeposit;
         voters[msg.sender].lastProposal = _id;
+
+        emit VotedForProposal(msg.sender, _id, _supportsAgainst);
     }
 
     function finishProposal(uint256 _id) public override existentProposal(_id) {
@@ -166,6 +176,7 @@ contract DAO is IDAO, ReentrancyGuard {
         } else {
             proposals[_id].status = ProposalStatus.FINISHED;
         }
+        emit ProposalFinished(msg.sender, _id);
     }
 
     function withdrawTokens() public override nonReentrant {
