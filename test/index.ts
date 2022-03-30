@@ -1,7 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BytesLike, constants, utils } from "ethers";
-import { arrayify } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import {
   DAO,
@@ -54,58 +53,6 @@ describe("DAO", function () {
     ).to.be.revertedWith("DAO: error of chairperson|token");
   });
 
-  describe("DAO deployment", () => {
-    it("should be proper address of the dao", async () => {
-      expect(dao.address).to.be.properAddress;
-      expect(await dao._chairperson()).to.eq(owner.address);
-      expect(await dao._token()).to.eq(token.address);
-      expect(await dao._minimumQuorum()).to.eq(MIN_QUORUM);
-      expect(await dao._duration()).to.eq(DURATION);
-    });
-  });
-
-  describe("Deposit", () => {
-    it("should be possible make deposit", async () => {
-      // mint and approve
-      await token.mint(owner.address, 1000);
-      await token.approve(dao.address, 1000);
-
-      let depositSum = 0;
-      for (const i of [100, 200, 300, 400]) {
-        // deposit
-        await dao.deposit(i);
-        depositSum += i;
-        expect(await token.balanceOf(dao.address)).to.eq(depositSum);
-
-        // cheking
-        const voter = await dao.voters(owner.address);
-        expect(voter.amount).to.eq(depositSum);
-      }
-      expect((await dao.voters(owner.address)).lastVotingTime).to.eq(0);
-      expect((await dao.voters(owner.address)).exists).to.eq(true);
-    });
-
-    it("should fail if amount equals to 0", async () => {
-      // mint and approve
-      await token.mint(owner.address, 1000);
-      // deposit
-      await expect(dao.deposit(0)).to.be.revertedWith("DAO: zero amount");
-      expect((await dao.voters(owner.address)).lastVotingTime).to.eq(0);
-      expect((await dao.voters(owner.address)).exists).to.eq(false);
-    });
-  });
-
-  interface ProposalItem {
-    num: number;
-    description: string;
-  }
-  const proposals: ProposalItem[] = [
-    { num: 0, description: "Proposal #0" },
-    { num: 1, description: "Proposal #1" },
-    { num: 2, description: "Proposal #2" },
-    { num: 3, description: "Proposal #3" },
-  ];
-
   // HELPERS ===================================================================
   const addProposal = async (
     propDesc: string,
@@ -155,7 +102,54 @@ describe("DAO", function () {
 
     await dao.connect(signer).vote(id, supportedAgainst);
   };
-  // HELPERS ===================================================================
+  // END HELPERS ===================================================================
+
+  describe("DAO deployment", () => {
+    it("should be proper address of the dao", async () => {
+      expect(dao.address).to.be.properAddress;
+      expect(await dao._chairperson()).to.eq(owner.address);
+      expect(await dao._token()).to.eq(token.address);
+      expect(await dao._minimumQuorum()).to.eq(MIN_QUORUM);
+      expect(await dao._duration()).to.eq(DURATION);
+    });
+  });
+
+  describe("Deposit", () => {
+    it("should be possible make deposit", async () => {
+      let depositSum = 0;
+      for (const i of [100, 200, 300, 400]) {
+        // deposit
+        depositSum += i;
+        await makeDeposit(i);
+
+        // cheking
+        const voter = await dao.voters(owner.address);
+        expect(voter.amount).to.eq(depositSum);
+        expect(voter.lastDeposit).to.eq(i);
+      }
+      expect((await dao.voters(owner.address)).lastVotingTime).to.eq(0);
+      expect((await dao.voters(owner.address)).exists).to.eq(true);
+    });
+
+    it("should fail if amount equals to 0", async () => {
+      // mint and approve
+      await token.mint(owner.address, 1000);
+      // deposit
+      await expect(dao.deposit(0)).to.be.revertedWith("DAO: zero amount");
+      expect((await dao.voters(owner.address)).lastVotingTime).to.eq(0);
+      expect((await dao.voters(owner.address)).exists).to.eq(false);
+    });
+  });
+
+  interface ProposalItem {
+    num: number;
+    description: string;
+  }
+  const proposals: ProposalItem[] = [
+    { num: 1, description: "Proposal #1" },
+    { num: 2, description: "Proposal #2" },
+    { num: 3, description: "Proposal #3" },
+  ];
 
   describe("Add proposal", () => {
     it("should be possible to add proposal", async () => {
@@ -176,19 +170,23 @@ describe("DAO", function () {
       await addProposal(proposals[0].description, proposals[0].num);
 
       await depositAndVote(1000, proposals[0].num, true);
+      await depositAndVote(100, proposals[0].num, true);
+
       await depositAndVote(200, proposals[0].num, false, acc1);
+      await depositAndVote(100, proposals[0].num, false, acc2);
+
       await depositAndVote(100, proposals[0].num, false, acc2);
       await depositAndVote(200, proposals[0].num, false, acc1);
 
-      const propsal = await dao.proposals(0);
+      const propsal = await dao.proposals(proposals[0].num);
       expect(propsal.voteCount).to.eq(500);
-      expect(propsal.quorumCount).to.eq(1500);
+      expect(propsal.quorumCount).to.eq(1700);
     });
 
     it("should be fail if voter trying to vote for non existent proposal", async () => {
-      await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
-        "DAO: not existent proposal"
-      );
+      await expect(
+        depositAndVote(1000, proposals[0].num, true)
+      ).to.be.revertedWith("DAO: not existent proposal");
     });
 
     it("should be fail if voter trying to vote after finishing of proposal", async () => {
@@ -197,8 +195,15 @@ describe("DAO", function () {
       await network.provider.send("evm_increaseTime", [DURATION]);
       await network.provider.send("evm_mine");
 
-      await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
-        "DAO: period of voting is over"
+      await expect(
+        depositAndVote(1000, proposals[0].num, true)
+      ).to.be.revertedWith("DAO: period of voting is over");
+    });
+
+    it("should be fail if voter doesn't have deposit", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+      await expect(dao.vote(proposals[0].num, true)).to.be.revertedWith(
+        "DAO: you cannot vote"
       );
     });
   });
@@ -215,6 +220,7 @@ describe("DAO", function () {
       await network.provider.send("evm_mine");
 
       await dao.finishProposal(proposals[0].num);
+      // checking
       const proposal = await dao.proposals(proposals[0].num);
       expect(proposal.status).to.eq(PROPOSAL_FINISHED);
       expect(await recipient.receivedValue()).to.eq(proposals[0].num);
@@ -231,8 +237,9 @@ describe("DAO", function () {
 
       // finish
       await dao.finishProposal(proposals[0].num);
+
+      // checking
       const proposal = await dao.proposals(proposals[0].num);
-      // check
       expect(proposal.status).to.eq(PROPOSAL_FINISHED);
       expect(await recipient.receivedValue()).to.eq(0);
       expect(await recipient.receivedMessage()).to.eq("");
@@ -262,10 +269,7 @@ describe("DAO", function () {
         proposals[0].description
       );
 
-      await depositAndVote(1000, proposals[0].num, true);
-      await depositAndVote(200, proposals[0].num, false, acc1);
-      await depositAndVote(100, proposals[0].num, false, acc2);
-      await depositAndVote(200, proposals[0].num, false, acc1);
+      await depositAndVote(2 * MIN_QUORUM, proposals[0].num, true);
 
       await network.provider.send("evm_increaseTime", [DURATION]);
       await network.provider.send("evm_mine");
@@ -273,6 +277,34 @@ describe("DAO", function () {
       // finish
       await expect(dao.finishProposal(proposals[0].num)).to.be.revertedWith(
         "DAO: call fails"
+      );
+    });
+  });
+
+  describe("With draw tokens", () => {
+    it("should be possible to withdraw tokens", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+
+      await depositAndVote(2000, proposals[0].num, true);
+
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+
+      await addProposal(proposals[1].description, proposals[1].num);
+      await dao.vote(proposals[1].num, true);
+
+      await network.provider.send("evm_increaseTime", [DURATION]);
+      await network.provider.send("evm_mine");
+
+      await dao.withdrawTokens();
+      expect(await token.balanceOf(owner.address)).to.eq(2000);
+    });
+
+    it("should be fail if sender trying to withdraw tokens too early", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+      await depositAndVote(2000, proposals[0].num, true);
+      await expect(dao.withdrawTokens()).to.be.revertedWith(
+        "DAO: last voting period isn't over"
       );
     });
   });

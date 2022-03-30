@@ -35,6 +35,7 @@ export interface DAOInterface extends utils.Interface {
     "proposals(uint256)": FunctionFragment;
     "vote(uint256,bool)": FunctionFragment;
     "voters(address)": FunctionFragment;
+    "withdrawTokens()": FunctionFragment;
   };
 
   getFunction(
@@ -50,6 +51,7 @@ export interface DAOInterface extends utils.Interface {
       | "proposals"
       | "vote"
       | "voters"
+      | "withdrawTokens"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -87,6 +89,10 @@ export interface DAOInterface extends utils.Interface {
     values: [BigNumberish, boolean]
   ): string;
   encodeFunctionData(functionFragment: "voters", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "withdrawTokens",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "_chairperson",
@@ -114,6 +120,10 @@ export interface DAOInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "proposals", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "vote", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "voters", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawTokens",
+    data: BytesLike
+  ): Result;
 
   events: {};
 }
@@ -207,13 +217,18 @@ export interface DAO extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, BigNumber, boolean] & {
+      [BigNumber, BigNumber, BigNumber, BigNumber, boolean] & {
         amount: BigNumber;
         lastVotingTime: BigNumber;
+        lastProposal: BigNumber;
         lastDeposit: BigNumber;
         exists: boolean;
       }
     >;
+
+    withdrawTokens(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
   };
 
   _chairperson(overrides?: CallOverrides): Promise<string>;
@@ -278,13 +293,18 @@ export interface DAO extends BaseContract {
     arg0: string,
     overrides?: CallOverrides
   ): Promise<
-    [BigNumber, BigNumber, BigNumber, boolean] & {
+    [BigNumber, BigNumber, BigNumber, BigNumber, boolean] & {
       amount: BigNumber;
       lastVotingTime: BigNumber;
+      lastProposal: BigNumber;
       lastDeposit: BigNumber;
       exists: boolean;
     }
   >;
+
+  withdrawTokens(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   callStatic: {
     _chairperson(overrides?: CallOverrides): Promise<string>;
@@ -343,13 +363,16 @@ export interface DAO extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, BigNumber, boolean] & {
+      [BigNumber, BigNumber, BigNumber, BigNumber, boolean] & {
         amount: BigNumber;
         lastVotingTime: BigNumber;
+        lastProposal: BigNumber;
         lastDeposit: BigNumber;
         exists: boolean;
       }
     >;
+
+    withdrawTokens(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {};
@@ -394,6 +417,10 @@ export interface DAO extends BaseContract {
     ): Promise<BigNumber>;
 
     voters(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    withdrawTokens(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -438,6 +465,10 @@ export interface DAO extends BaseContract {
     voters(
       arg0: string,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    withdrawTokens(
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
 }
