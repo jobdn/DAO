@@ -1,7 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BytesLike, constants, utils } from "ethers";
-import { arrayify } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import {
   DAO,
@@ -80,6 +79,7 @@ describe("DAO", function () {
         // cheking
         const voter = await dao.voters(owner.address);
         expect(voter.amount).to.eq(depositSum);
+        expect(voter.lastDeposit).to.eq(i);
       }
       expect((await dao.voters(owner.address)).lastVotingTime).to.eq(0);
       expect((await dao.voters(owner.address)).exists).to.eq(true);
@@ -100,7 +100,6 @@ describe("DAO", function () {
     description: string;
   }
   const proposals: ProposalItem[] = [
-    { num: 0, description: "Proposal #0" },
     { num: 1, description: "Proposal #1" },
     { num: 2, description: "Proposal #2" },
     { num: 3, description: "Proposal #3" },
@@ -176,19 +175,23 @@ describe("DAO", function () {
       await addProposal(proposals[0].description, proposals[0].num);
 
       await depositAndVote(1000, proposals[0].num, true);
+      await depositAndVote(100, proposals[0].num, true);
+
       await depositAndVote(200, proposals[0].num, false, acc1);
+      await depositAndVote(100, proposals[0].num, false, acc2);
+
       await depositAndVote(100, proposals[0].num, false, acc2);
       await depositAndVote(200, proposals[0].num, false, acc1);
 
-      const propsal = await dao.proposals(0);
+      const propsal = await dao.proposals(proposals[0].num);
       expect(propsal.voteCount).to.eq(500);
-      expect(propsal.quorumCount).to.eq(1500);
+      expect(propsal.quorumCount).to.eq(1700);
     });
 
     it("should be fail if voter trying to vote for non existent proposal", async () => {
-      await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
-        "DAO: not existent proposal"
-      );
+      await expect(
+        depositAndVote(1000, proposals[0].num, true)
+      ).to.be.revertedWith("DAO: not existent proposal");
     });
 
     it("should be fail if voter trying to vote after finishing of proposal", async () => {
@@ -197,9 +200,9 @@ describe("DAO", function () {
       await network.provider.send("evm_increaseTime", [DURATION]);
       await network.provider.send("evm_mine");
 
-      await expect(depositAndVote(1000, 0, true)).to.be.revertedWith(
-        "DAO: period of voting is over"
-      );
+      await expect(
+        depositAndVote(1000, proposals[0].num, true)
+      ).to.be.revertedWith("DAO: period of voting is over");
     });
   });
 
@@ -273,6 +276,34 @@ describe("DAO", function () {
       // finish
       await expect(dao.finishProposal(proposals[0].num)).to.be.revertedWith(
         "DAO: call fails"
+      );
+    });
+  });
+
+  describe("With draw tokens", () => {
+    it("should be possible to withdraw tokens", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+
+      await depositAndVote(2000, proposals[0].num, true);
+
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+
+      await addProposal(proposals[1].description, proposals[1].num);
+      await dao.vote(proposals[1].num, true);
+
+      await network.provider.send("evm_increaseTime", [DURATION]);
+      await network.provider.send("evm_mine");
+
+      await dao.withdrawTokens();
+      expect(await token.balanceOf(owner.address)).to.eq(2000);
+    });
+
+    it("should be fail if sender trying to withdraw tokens too early", async () => {
+      await addProposal(proposals[0].description, proposals[0].num);
+      await depositAndVote(2000, proposals[0].num, true);
+      await expect(dao.withdrawTokens()).to.be.revertedWith(
+        "DAO: last voting period isn't over"
       );
     });
   });
