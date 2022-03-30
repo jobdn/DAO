@@ -122,6 +122,7 @@ contract DAO is IDAO, ReentrancyGuard {
             block.timestamp < proposals[_id].creationTime + _duration,
             "DAO: period of voting is over"
         );
+        require(voters[msg.sender].exists, "DAO: you cannot vote");
         // User votes not first time for this proposal
         if (voters[msg.sender].lastProposal == _id) {
             if (_supportsAgainst) {
@@ -163,7 +164,6 @@ contract DAO is IDAO, ReentrancyGuard {
                 proposals[_id].callData
             );
             require(callStatus, "DAO: call fails");
-            // TODO: please change call data if callStatus is false
             proposals[_id].status = ProposalStatus.FINISHED;
         } else {
             proposals[_id].status = ProposalStatus.FINISHED;
