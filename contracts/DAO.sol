@@ -4,12 +4,13 @@ pragma solidity ^0.8.11;
 import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./IDAO.sol";
 import "./token/ERC20.sol";
 
-contract DAO is IDAO {
+contract DAO is IDAO, ReentrancyGuard {
     using SafeERC20 for IERC20;
     address public immutable _chairperson;
     address public immutable _token;
@@ -39,6 +40,7 @@ contract DAO is IDAO {
     struct Voter {
         uint256 amount;
         uint256 lastVotingTime;
+        uint256 lastProposal;
         uint256 lastDeposit;
         bool exists;
     }
@@ -74,6 +76,7 @@ contract DAO is IDAO {
                 amount: _amount,
                 lastVotingTime: 0,
                 lastDeposit: _amount,
+                lastProposal: 0,
                 exists: true
             });
         } else {
@@ -88,6 +91,8 @@ contract DAO is IDAO {
         string memory _descrition
     ) public override {
         require(msg.sender == _chairperson, "DAO: not chairperson");
+        // Proposal numbers start from 1
+        _proposalCounter++;
         proposals[_proposalCounter] = Proposal({
             id: _proposalCounter,
             voteCount: 0,
@@ -98,8 +103,6 @@ contract DAO is IDAO {
             status: ProposalStatus.STARTED,
             description: bytes32(bytes(_descrition))
         });
-
-        _proposalCounter++;
     }
 
     modifier existentProposal(uint256 _id) {
@@ -119,13 +122,31 @@ contract DAO is IDAO {
             block.timestamp < proposals[_id].creationTime + _duration,
             "DAO: period of voting is over"
         );
-        if (_supportsAgainst) {
-            proposals[_id].voteCount += int256(voters[msg.sender].lastDeposit);
+        // User votes not first time for this proposal
+        if (voters[msg.sender].lastProposal == _id) {
+            if (_supportsAgainst) {
+                proposals[_id].voteCount += int256(
+                    voters[msg.sender].lastDeposit
+                );
+            } else {
+                proposals[_id].voteCount -= int256(
+                    voters[msg.sender].lastDeposit
+                );
+            }
         } else {
-            proposals[_id].voteCount -= int256(voters[msg.sender].lastDeposit);
+            // User votes first time for this proposal
+            if (_supportsAgainst) {
+                proposals[_id].voteCount += int256(voters[msg.sender].amount);
+            } else {
+                proposals[_id].voteCount -= int256(voters[msg.sender].amount);
+            }
+        }
+
+        if (proposals[_id].creationTime > voters[msg.sender].lastVotingTime) {
+            voters[msg.sender].lastVotingTime = proposals[_id].creationTime;
         }
         proposals[_id].quorumCount += voters[msg.sender].lastDeposit;
-        voters[msg.sender].lastVotingTime = block.timestamp;
+        voters[msg.sender].lastProposal = _id;
     }
 
     function finishProposal(uint256 _id) public override existentProposal(_id) {
@@ -141,12 +162,20 @@ contract DAO is IDAO {
             (bool callStatus, ) = proposals[_id].recipient.call(
                 proposals[_id].callData
             );
-            console.log("CALL STATUS: ", callStatus);
             require(callStatus, "DAO: call fails");
             // TODO: please change call data if callStatus is false
             proposals[_id].status = ProposalStatus.FINISHED;
         } else {
             proposals[_id].status = ProposalStatus.FINISHED;
         }
+    }
+
+    function withdrawTokens() public override nonReentrant {
+        require(
+            block.timestamp >= voters[msg.sender].lastVotingTime + _duration,
+            "DAO: last voting period isn't over"
+        );
+        IERC20(_token).safeTransfer(msg.sender, voters[msg.sender].amount);
+        voters[msg.sender].exists = false;
     }
 }
