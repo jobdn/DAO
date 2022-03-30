@@ -1,13 +1,19 @@
 import { ethers } from "hardhat";
-import { Greeter__factory } from "../typechain-types";
+import { config } from "../config";
+import { DAO__factory } from "../typechain-types";
 
 async function main() {
-  const [owner] = await ethers.getSigners();
-  const greeter = await new Greeter__factory(owner).deploy("Hello, Hardhat!");
+  const [signer] = await ethers.getSigners();
+  const dao = await new DAO__factory(signer).deploy(
+    signer.address,
+    config.VOTE_TOKEN,
+    config.MININUM_QUORUM,
+    config.DURATION
+  );
 
-  await greeter.deployed();
+  await dao.deployed();
 
-  console.log("Greeter deployed to:", greeter.address);
+  console.log("DAO deployed to:", dao.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
