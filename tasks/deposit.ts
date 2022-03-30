@@ -12,7 +12,5 @@ task("deposit", "Make deposit for voting to dao")
 
     await dao.deposit(amount);
 
-    console.log(
-      `User ${signer.address} sended ${amount} to dao ${dao.address}`
-    );
+    console.log(`${signer.address} sended ${amount} to dao ${dao.address}`);
   });
