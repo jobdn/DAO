@@ -279,11 +279,9 @@ export interface DAO extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, BigNumber, BigNumber, boolean] & {
+      [BigNumber, BigNumber, boolean] & {
         amount: BigNumber;
         lastVotingTime: BigNumber;
-        lastProposal: BigNumber;
-        lastDeposit: BigNumber;
         exists: boolean;
       }
     >;
@@ -355,11 +353,9 @@ export interface DAO extends BaseContract {
     arg0: string,
     overrides?: CallOverrides
   ): Promise<
-    [BigNumber, BigNumber, BigNumber, BigNumber, boolean] & {
+    [BigNumber, BigNumber, boolean] & {
       amount: BigNumber;
       lastVotingTime: BigNumber;
-      lastProposal: BigNumber;
-      lastDeposit: BigNumber;
       exists: boolean;
     }
   >;
@@ -425,11 +421,9 @@ export interface DAO extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, BigNumber, BigNumber, boolean] & {
+      [BigNumber, BigNumber, boolean] & {
         amount: BigNumber;
         lastVotingTime: BigNumber;
-        lastProposal: BigNumber;
-        lastDeposit: BigNumber;
         exists: boolean;
       }
     >;
