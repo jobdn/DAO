@@ -38,9 +38,8 @@ contract DAO is IDAO, ReentrancyGuard {
     struct Voter {
         uint256 amount;
         uint256 lastVotingTime;
-        uint256 lastProposal;
-        uint256 lastDeposit;
         bool exists;
+        mapping(uint256 => uint256) ptoposalToTokens;
     }
 
     /**  @dev Creates the DAO contract
@@ -66,20 +65,15 @@ contract DAO is IDAO, ReentrancyGuard {
         _duration = debatingPeriodDuration;
     }
 
-    function deposit(uint256 _amount) public override {
-        require(_amount != 0, "DAO: zero amount");
+    function deposit(uint256 _amount) public override nonReentrant {
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         if (!voters[msg.sender].exists) {
-            voters[msg.sender] = Voter({
-                amount: _amount,
-                lastVotingTime: 0,
-                lastDeposit: _amount,
-                lastProposal: 0,
-                exists: true
-            });
+            Voter storage newVoter = voters[msg.sender];
+            newVoter.amount = _amount;
+            newVoter.lastVotingTime = 0;
+            newVoter.exists = true;
         } else {
             voters[msg.sender].amount += _amount;
-            voters[msg.sender].lastDeposit = _amount;
         }
 
         emit DepositMade(msg.sender, _amount);
@@ -91,8 +85,6 @@ contract DAO is IDAO, ReentrancyGuard {
         string memory _descrition
     ) public override {
         require(msg.sender == _chairperson, "DAO: not chairperson");
-        // Proposal numbers start from 1
-        _proposalCounter++;
         proposals[_proposalCounter] = Proposal({
             id: _proposalCounter,
             voteCount: 0,
@@ -103,6 +95,7 @@ contract DAO is IDAO, ReentrancyGuard {
             status: ProposalStatus.STARTED,
             description: bytes32(bytes(_descrition))
         });
+        _proposalCounter++;
 
         emit ProposalAdded(
             _recipient,
@@ -128,32 +121,23 @@ contract DAO is IDAO, ReentrancyGuard {
             block.timestamp < proposals[_id].creationTime + _duration,
             "DAO: period of voting is over"
         );
+        // User cannot vote after withdraw
         require(voters[msg.sender].exists, "DAO: you cannot vote");
-        // User votes not first time for this proposal
-        if (voters[msg.sender].lastProposal == _id) {
-            if (_supportsAgainst) {
-                proposals[_id].voteCount += int256(
-                    voters[msg.sender].lastDeposit
-                );
-            } else {
-                proposals[_id].voteCount -= int256(
-                    voters[msg.sender].lastDeposit
-                );
-            }
+
+        uint256 lastDeposit = voters[msg.sender].amount -
+            voters[msg.sender].ptoposalToTokens[_id];
+        if (_supportsAgainst) {
+            proposals[_id].voteCount += int256(lastDeposit);
         } else {
-            // User votes first time for this proposal
-            if (_supportsAgainst) {
-                proposals[_id].voteCount += int256(voters[msg.sender].amount);
-            } else {
-                proposals[_id].voteCount -= int256(voters[msg.sender].amount);
-            }
+            proposals[_id].voteCount -= int256(lastDeposit);
         }
+
+        proposals[_id].quorumCount += lastDeposit;
+        voters[msg.sender].ptoposalToTokens[_id] += lastDeposit;
 
         if (proposals[_id].creationTime > voters[msg.sender].lastVotingTime) {
             voters[msg.sender].lastVotingTime = proposals[_id].creationTime;
         }
-        proposals[_id].quorumCount += voters[msg.sender].lastDeposit;
-        voters[msg.sender].lastProposal = _id;
 
         emit VotedForProposal(msg.sender, _id, _supportsAgainst);
     }

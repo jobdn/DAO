@@ -33,7 +33,7 @@ interface IDAO {
         string memory _descrition
     ) external;
 
-    /// @notice Vote on proposal `_proposalID` with `_supportsProposal`
+    /// @notice Vote for proposal `_proposalID` with `_supportsProposal`
     /// @dev If sender votes for a certain proposal for the first time he votes with all the tokens he has otherwise he votes with the last deposit he made
     /// @param _id Id of proposal
     /// @param _supportsProposal Support of the proposal
