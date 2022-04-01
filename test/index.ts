@@ -68,18 +68,21 @@ describe("DAO", function () {
       propDesc,
     ]);
     // proposal adding
-    await dao
+    const tx = await dao
       .connect(signer)
       .addProposal(callData, recipient.address, propDesc);
+    const ts = (await ethers.provider.getBlock(tx.blockNumber as number))
+      .timestamp;
 
+    expect((await dao.proposals(propNum)).creationTime).to.eq(ts);
     expect((await dao.proposals(propNum)).id).to.eq(propNum);
     expect((await dao.proposals(propNum)).callData).to.eq(callData);
     expect((await dao.proposals(propNum)).recipient).to.eq(recipient.address);
     expect((await dao.proposals(propNum)).description).to.eq(
       utils.formatBytes32String(propDesc)
     );
-    expect((await dao.proposals(propNum)).voteCount).to.eq(0);
-    expect((await dao.proposals(propNum)).quorumCount).to.eq(0);
+    expect((await dao.proposals(propNum)).votesNo).to.eq(0);
+    expect((await dao.proposals(propNum)).votesYes).to.eq(0);
     expect((await dao.proposals(propNum)).status).to.eq(PROPOSAL_STARTED);
   };
 
@@ -124,7 +127,7 @@ describe("DAO", function () {
     });
   });
 
-  describe("Deposit", () => {
+  describe("deposit", () => {
     it("should be possible make deposit", async () => {
       let depositSum = 0;
       for (const i of [100, 200, 300, 400]) {
@@ -141,7 +144,7 @@ describe("DAO", function () {
     });
   });
 
-  describe("Add proposal", () => {
+  describe("addProposal", () => {
     it("should be possible to add proposal", async () => {
       for (const prop of proposals) {
         await addProposal(prop.description, prop.num);
@@ -167,17 +170,17 @@ describe("DAO", function () {
       await dao.vote(proposals[0].num, true);
       await dao.vote(proposals[1].num, false);
       await dao.vote(proposals[2].num, true);
-      expect((await dao.proposals(0)).voteCount).to.eq(100);
-      expect((await dao.proposals(1)).voteCount).to.eq(-100);
-      expect((await dao.proposals(2)).voteCount).to.eq(100);
+      expect((await dao.proposals(0)).votesYes).to.eq(100);
+      expect((await dao.proposals(1)).votesNo).to.eq(100);
+      expect((await dao.proposals(2)).votesYes).to.eq(100);
 
       await makeDeposit(100);
       await dao.vote(proposals[0].num, true);
       await dao.vote(proposals[1].num, false);
       await dao.vote(proposals[2].num, true);
-      expect((await dao.proposals(0)).voteCount).to.eq(200);
-      expect((await dao.proposals(1)).voteCount).to.eq(-200);
-      expect((await dao.proposals(2)).voteCount).to.eq(200);
+      expect((await dao.proposals(0)).votesYes).to.eq(200);
+      expect((await dao.proposals(1)).votesNo).to.eq(200);
+      expect((await dao.proposals(2)).votesYes).to.eq(200);
     });
 
     it("should be fail if voter doesn't have deposit", async () => {
@@ -213,7 +216,8 @@ describe("DAO", function () {
       await depositAndVote(100, proposals[0].num, false, acc2);
       await depositAndVote(200, proposals[0].num, false, acc1);
 
-      expect((await dao.proposals(proposals[0].num)).voteCount).to.eq(500);
+      expect((await dao.proposals(proposals[0].num)).votesYes).to.eq(1000);
+      expect((await dao.proposals(proposals[0].num)).votesNo).to.eq(500);
 
       await network.provider.send("evm_increaseTime", [DURATION]);
       await network.provider.send("evm_mine");

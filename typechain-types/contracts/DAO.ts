@@ -260,8 +260,8 @@ export interface DAO extends BaseContract {
       ] & {
         id: BigNumber;
         creationTime: BigNumber;
-        quorumCount: BigNumber;
-        voteCount: BigNumber;
+        votesYes: BigNumber;
+        votesNo: BigNumber;
         description: string;
         recipient: string;
         status: number;
@@ -334,8 +334,8 @@ export interface DAO extends BaseContract {
     ] & {
       id: BigNumber;
       creationTime: BigNumber;
-      quorumCount: BigNumber;
-      voteCount: BigNumber;
+      votesYes: BigNumber;
+      votesNo: BigNumber;
       description: string;
       recipient: string;
       status: number;
@@ -402,8 +402,8 @@ export interface DAO extends BaseContract {
       ] & {
         id: BigNumber;
         creationTime: BigNumber;
-        quorumCount: BigNumber;
-        voteCount: BigNumber;
+        votesYes: BigNumber;
+        votesNo: BigNumber;
         description: string;
         recipient: string;
         status: number;

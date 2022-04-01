@@ -27,8 +27,8 @@ contract DAO is IDAO, ReentrancyGuard {
     struct Proposal {
         uint256 id;
         uint256 creationTime;
-        uint256 quorumCount;
-        int256 voteCount;
+        uint256 votesYes;
+        uint256 votesNo;
         bytes32 description;
         address recipient;
         ProposalStatus status;
@@ -37,6 +37,8 @@ contract DAO is IDAO, ReentrancyGuard {
 
     struct Voter {
         uint256 amount;
+        // The time of the last vote will always be less then the time of the new vote.
+        // And this variable changes when user votes.
         uint256 lastVotingTime;
         bool exists;
         mapping(uint256 => uint256) ptoposalToTokens;
@@ -70,7 +72,6 @@ contract DAO is IDAO, ReentrancyGuard {
         if (!voters[msg.sender].exists) {
             Voter storage newVoter = voters[msg.sender];
             newVoter.amount = _amount;
-            newVoter.lastVotingTime = 0;
             newVoter.exists = true;
         } else {
             voters[msg.sender].amount += _amount;
@@ -87,8 +88,8 @@ contract DAO is IDAO, ReentrancyGuard {
         require(msg.sender == _chairperson, "DAO: not chairperson");
         proposals[_proposalCounter] = Proposal({
             id: _proposalCounter,
-            voteCount: 0,
-            quorumCount: 0,
+            votesYes: 0,
+            votesNo: 0,
             creationTime: block.timestamp,
             callData: _callData,
             recipient: _recipient,
@@ -127,12 +128,11 @@ contract DAO is IDAO, ReentrancyGuard {
         uint256 lastDeposit = voters[msg.sender].amount -
             voters[msg.sender].ptoposalToTokens[_id];
         if (_supportsAgainst) {
-            proposals[_id].voteCount += int256(lastDeposit);
+            proposals[_id].votesYes += lastDeposit;
         } else {
-            proposals[_id].voteCount -= int256(lastDeposit);
+            proposals[_id].votesNo += lastDeposit;
         }
 
-        proposals[_id].quorumCount += lastDeposit;
         voters[msg.sender].ptoposalToTokens[_id] += lastDeposit;
 
         if (proposals[_id].creationTime > voters[msg.sender].lastVotingTime) {
@@ -149,8 +149,8 @@ contract DAO is IDAO, ReentrancyGuard {
         );
 
         if (
-            proposals[_id].quorumCount > _minimumQuorum &&
-            proposals[_id].voteCount > 0
+            proposals[_id].votesYes + proposals[_id].votesNo > _minimumQuorum &&
+            proposals[_id].votesYes > proposals[_id].votesNo
         ) {
             (bool callStatus, ) = proposals[_id].recipient.call(
                 proposals[_id].callData
