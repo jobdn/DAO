@@ -279,11 +279,7 @@ export interface DAO extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, boolean] & {
-        amount: BigNumber;
-        lastVotingTime: BigNumber;
-        exists: boolean;
-      }
+      [BigNumber, BigNumber] & { amount: BigNumber; lastVotingTime: BigNumber }
     >;
 
     withdrawTokens(
@@ -353,11 +349,7 @@ export interface DAO extends BaseContract {
     arg0: string,
     overrides?: CallOverrides
   ): Promise<
-    [BigNumber, BigNumber, boolean] & {
-      amount: BigNumber;
-      lastVotingTime: BigNumber;
-      exists: boolean;
-    }
+    [BigNumber, BigNumber] & { amount: BigNumber; lastVotingTime: BigNumber }
   >;
 
   withdrawTokens(
@@ -421,11 +413,7 @@ export interface DAO extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, boolean] & {
-        amount: BigNumber;
-        lastVotingTime: BigNumber;
-        exists: boolean;
-      }
+      [BigNumber, BigNumber] & { amount: BigNumber; lastVotingTime: BigNumber }
     >;
 
     withdrawTokens(overrides?: CallOverrides): Promise<void>;

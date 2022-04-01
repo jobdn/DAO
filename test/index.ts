@@ -140,7 +140,6 @@ describe("DAO", function () {
         expect(voter.amount).to.eq(depositSum);
       }
       expect((await dao.voters(owner.address)).lastVotingTime).to.eq(0);
-      expect((await dao.voters(owner.address)).exists).to.eq(true);
     });
   });
 

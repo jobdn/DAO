@@ -40,7 +40,6 @@ contract DAO is IDAO, ReentrancyGuard {
         // The time of the last vote will always be less then the time of the new vote.
         // And this variable changes when user votes.
         uint256 lastVotingTime;
-        bool exists;
         mapping(uint256 => uint256) ptoposalToTokens;
     }
 
@@ -69,10 +68,9 @@ contract DAO is IDAO, ReentrancyGuard {
 
     function deposit(uint256 _amount) public override nonReentrant {
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-        if (!voters[msg.sender].exists) {
+        if (voters[msg.sender].amount == 0) {
             Voter storage newVoter = voters[msg.sender];
             newVoter.amount = _amount;
-            newVoter.exists = true;
         } else {
             voters[msg.sender].amount += _amount;
         }
@@ -123,7 +121,7 @@ contract DAO is IDAO, ReentrancyGuard {
             "DAO: period of voting is over"
         );
         // User cannot vote after withdraw
-        require(voters[msg.sender].exists, "DAO: you cannot vote");
+        require(voters[msg.sender].amount > 0, "DAO: you cannot vote");
 
         uint256 lastDeposit = voters[msg.sender].amount -
             voters[msg.sender].ptoposalToTokens[_id];
@@ -169,6 +167,6 @@ contract DAO is IDAO, ReentrancyGuard {
             "DAO: last voting period isn't over"
         );
         IERC20(_token).safeTransfer(msg.sender, voters[msg.sender].amount);
-        voters[msg.sender].exists = false;
+        voters[msg.sender].amount = 0;
     }
 }
